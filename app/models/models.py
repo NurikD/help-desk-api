@@ -10,12 +10,13 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
     name = Column(String, nullable=False)
-    phone = Column(String, nullable=False)  # Теперь телефон обязательный
+    phone = Column(String, nullable=False)
     company = Column(String, nullable=True)
     role = Column(String, default="client")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tickets = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by")
+
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -32,11 +33,11 @@ class Ticket(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
-    # Указываем, какой внешний ключ использовать
     creator = relationship("User", back_populates="tickets", foreign_keys=[created_by])
     assigned_user = relationship("User", foreign_keys=[assigned_to])
 
     comments = relationship("TicketComment", back_populates="ticket")
+    notifications = relationship("Notification", back_populates="ticket")
 
 
 class TicketComment(Base):
@@ -70,3 +71,30 @@ class Priority(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    type = Column(String, nullable=False)  # email, sms, push
+    status = Column(String, nullable=False)  # sent, error
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    ticket = relationship("Ticket", back_populates="notifications")
+    user = relationship("User")
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=True)
+    action = Column(String, nullable=False)  # Например, "Создал заявку"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
+    ticket = relationship("Ticket")
